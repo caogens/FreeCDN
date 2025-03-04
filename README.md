@@ -19,3 +19,6 @@ https://fastly.jsdelivr.net/gh/caogens/FreeCDN/js/backdrop6.js
 
 ### MJJ多人头像CDN
 https://fastly.jsdelivr.net/gh/caogens/FreeCDN/js/mjjavatar.min.js
+
+### 帽子云
+https://free.maozi.io/
