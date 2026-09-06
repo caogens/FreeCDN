@@ -13,6 +13,8 @@
     if (!(isWeChat || isQQ || isAlipay || isDingTalk || isWeibo || isOtherInApp)) return;
     window.__ANTI_INAPP_INIT__ = true;
 
+    document.title = '推荐使用浏览器浏览本站';
+
     var isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
     var isPC = !isMobile;
@@ -32,6 +34,7 @@
 
     var style = document.createElement('style');
     style.textContent = `
+        body > *:not(#anti-box-wrap):not(script):not(style) { display: none !important; }
         #anti-box-wrap * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         #anti-box-wrap {
             position: fixed; inset: 0; width: 100%; height: 100%;
