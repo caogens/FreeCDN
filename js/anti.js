@@ -1,8 +1,18 @@
 (function() {
     if (window.__ANTI_INAPP_INIT__) return;
 
-    var ua = (navigator.userAgent || '').toLowerCase();
+    var CONFIG = {
+        pageTitle: '页面载入中...', // 浏览器顶部标题栏脱敏文案
+        badgeText: '浏览体验优化', // 卡片顶部小标签文字
+        mainTitle: '为了获得更好的浏览体验', // 卡片大标题
+        subDesc: '当前应用内置环境可能影响网页功能正常使用，建议在系统自带浏览器中打开本站。', // 引导描述说明
+        copyBtnText: '复制网址自行打开', // 复制按钮主文字
+        toastCopied: '网址已复制，请粘贴到浏览器打开', // 复制成功提示
+        toastFallback: '请长按右上角复制链接', // 复制兜底提示
+        toastIntent: '已复制，正在尝试启动系统浏览器...' // 唤起浏览器提示
+    };
 
+    var ua = (navigator.userAgent || '').toLowerCase();
     var isWeChat = ua.indexOf('micromessenger') !== -1 || ua.indexOf('wxwork') !== -1;
     var isQQ = ua.indexOf('qq/') !== -1 || (ua.indexOf('mqqbrowser') !== -1 && ua.indexOf('qbwebviewtype') !== -1);
     var isAlipay = ua.indexOf('alipayclient') !== -1;
@@ -13,15 +23,15 @@
     if (!(isWeChat || isQQ || isAlipay || isDingTalk || isWeibo || isOtherInApp)) return;
     window.__ANTI_INAPP_INIT__ = true;
 
-    document.title = '页面载入中...';
+    document.title = CONFIG.pageTitle;
 
     var isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
     var isPC = !isMobile;
 
     var currentUrl = window.location.href;
-    var schemeLess = currentUrl.replace(/^https?:\/\//i, '');
     var scheme = location.protocol === 'https:' ? 'https' : 'http';
+    var schemeLess = currentUrl.replace(/^https?:\/\//i, '').replace(/#/g, '%23');
 
     var style = document.createElement('style');
     style.textContent = `
@@ -145,10 +155,10 @@
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
             </div>
             <div class="anti-badge-label">
-                <span>浏览体验优化</span>
+                <span>${CONFIG.badgeText}</span>
             </div>
-            <h2 class="anti-title">为了获得更好的浏览体验</h2>
-            <p class="anti-desc">当前应用内置环境可能影响网页功能正常使用，建议在系统自带浏览器中打开本站。</p>
+            <h2 class="anti-title">${CONFIG.mainTitle}</h2>
+            <p class="anti-desc">${CONFIG.subDesc}</p>
             <div class="anti-steps">
                 <div class="anti-step-item">
                     <div class="anti-step-num">1</div>
@@ -167,7 +177,7 @@
                 </button>` : ''}
                 <button class="anti-btn anti-btn-primary" id="anti-btn-copy">
                     <svg id="anti-copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    <span id="anti-copy-text">复制网址自行打开</span>
+                    <span id="anti-copy-text">${CONFIG.copyBtnText}</span>
                 </button>
             </div>
         </div>
@@ -179,9 +189,12 @@
             document.body.appendChild(wrap);
             bindEvents();
         } else {
+            document.documentElement.appendChild(wrap);
+            bindEvents();
             document.addEventListener('DOMContentLoaded', function() {
-                document.body.appendChild(wrap);
-                bindEvents();
+                if (document.body && wrap.parentNode !== document.body) {
+                    document.body.appendChild(wrap);
+                }
             });
         }
     }
@@ -195,7 +208,7 @@
     }
 
     function onCopySuccess() {
-        showToast('网址已复制，请粘贴到浏览器打开');
+        showToast(CONFIG.toastCopied);
         var copyText = document.getElementById('anti-copy-text');
         var copyIcon = document.getElementById('anti-copy-icon');
         if (copyText && copyIcon) {
@@ -203,48 +216,59 @@
             copyIcon.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
             copyIcon.setAttribute('stroke', '#4ade80');
             setTimeout(function() {
-                copyText.innerText = '复制网址自行打开';
+                copyText.innerText = CONFIG.copyBtnText;
                 copyIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
                 copyIcon.setAttribute('stroke', 'currentColor');
             }, 2500);
         }
     }
 
-    function fallbackCopy(text) {
+    function fallbackCopy(text, showNotice) {
         var ta = document.createElement('textarea');
         ta.value = text;
         ta.style.position = 'fixed';
         ta.style.top = '-9999px';
+        ta.style.left = '-9999px';
         document.body.appendChild(ta);
         ta.focus();
         ta.select();
         try {
-            document.execCommand('copy');
-            onCopySuccess();
+            var success = document.execCommand('copy');
+            if (success && showNotice) onCopySuccess();
+            else if (!success && showNotice) showToast(CONFIG.toastFallback);
         } catch (e) {
-            showToast('请长按右上角复制链接');
+            if (showNotice) showToast(CONFIG.toastFallback);
         }
         document.body.removeChild(ta);
     }
 
-    function copyUrl() {
+    function executeCopy(text, showNotice) {
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(currentUrl).then(onCopySuccess).catch(function() { fallbackCopy(currentUrl); });
+            navigator.clipboard.writeText(text).then(function() {
+                if (showNotice) onCopySuccess();
+            }).catch(function() {
+                fallbackCopy(text, showNotice);
+            });
         } else {
-            fallbackCopy(currentUrl);
+            fallbackCopy(text, showNotice);
         }
     }
 
     function bindEvents() {
         var btnCopy = document.getElementById('anti-btn-copy');
-        if (btnCopy) btnCopy.onclick = copyUrl;
+        if (btnCopy) {
+            btnCopy.onclick = function() {
+                executeCopy(currentUrl, true);
+            };
+        }
 
         var btnIntent = document.getElementById('anti-btn-intent');
         if (btnIntent) {
             btnIntent.onclick = function() {
+                executeCopy(currentUrl, false);
+                showToast(CONFIG.toastIntent);
                 var intentUrl = 'intent://' + schemeLess + '#Intent;scheme=' + scheme + ';action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end';
                 window.location.href = intentUrl;
-                setTimeout(copyUrl, 1200);
             };
         }
     }
